@@ -23,3 +23,10 @@ func (r *ResponseObject) Json(code int,msg string ,obj any){
 	}
 	r.Handle.JSON(code,d)
 }
+
+func (r *ResponseObject) Unauthorized(){
+	d 	:= &ResponseData{
+		Code: 401,Msg: "Unauthorized",
+	}
+	r.Handle.JSON(401,d)
+}
