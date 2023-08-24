@@ -1,6 +1,9 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type Account struct {
 	gorm.Model
@@ -9,4 +12,5 @@ type Account struct {
 	Nickname	string 		`gorm:"null"`
 	AuthingID	string 		`gorm:"null;unique;index"`
 	TokenCount	uint64
+	LastTokenCostTime	time.Time
 }

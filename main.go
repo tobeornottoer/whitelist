@@ -6,6 +6,7 @@ import (
 	"whitelist/logger"
 	"whitelist/route"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -17,6 +18,7 @@ func main(){
 	gin.DisableConsoleColor()
 	gin.SetMode(os.Getenv("RUN_MODE"))
 	router := gin.Default()
+	router.Use(cors.Default())
 	router.Use(logger.Logger())
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
