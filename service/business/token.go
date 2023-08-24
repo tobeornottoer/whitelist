@@ -10,7 +10,7 @@ import (
 
 func Dashboard(c *gin.Context){
 	page,_		:= strconv.Atoi(c.DefaultQuery("page","1"))
-	pageSize,_	:= strconv.Atoi(c.DefaultQuery("pageSize","10"))
+	pageSize,_	:= strconv.Atoi(c.DefaultQuery("pageSize","100"))
 	searchUID, _ := strconv.Atoi(c.DefaultQuery("uid","0"))
 	email		:= c.DefaultQuery("email","")
 	sortField	:= c.DefaultQuery("sortField","")
@@ -29,6 +29,8 @@ func Dashboard(c *gin.Context){
 	}
 	if sortField != "" {
 		handle	= handle.Order(sortField + " " +sortWay)
+	} else {
+		handle	= handle.Order("last_token_cost_time desc,created_at desc,token_count desc")
 	}
 	result := handle.Count(&total).Offset((page - 1) * pageSize).Limit(pageSize).Find(&list)
 	if result.Error != nil {
