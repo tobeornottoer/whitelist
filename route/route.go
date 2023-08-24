@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"whitelist/middleware"
 	"whitelist/service/admins"
+	business2 "whitelist/service/business"
 	whitelistService "whitelist/service/whitelist"
 )
 
@@ -12,6 +13,7 @@ func Set(r *gin.Engine) {
 	whitelist(r)
 	login(r)
 	initAdmin(r)
+	business(r)
 }
 
 func login(r *gin.Engine){
@@ -45,6 +47,16 @@ func whitelist(r *gin.Engine){
 		})
 		authorized.POST("/import/excel",func(c *gin.Context){
 			whitelistService.ImportEmails(c)
+		})
+	}
+}
+
+func business(r *gin.Engine) {
+	authorized := r.Group("")
+	authorized.Use(middleware.UserAuthorized())
+	{
+		authorized.GET("/token/dashboard",func(c *gin.Context){
+			business2.Dashboard(c)
 		})
 	}
 }

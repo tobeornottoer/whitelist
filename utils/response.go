@@ -24,6 +24,13 @@ func (r *ResponseObject) Json(code int,msg string ,obj any){
 	r.Handle.JSON(code,d)
 }
 
+func (r *ResponseObject) Success(obj any){
+	d 	:= &ResponseData{
+		Code: 200,Msg: "success",Data: obj,
+	}
+	r.Handle.JSON(200,d)
+}
+
 func (r *ResponseObject) Unauthorized(){
 	d 	:= &ResponseData{
 		Code: 401,Msg: "Unauthorized",
