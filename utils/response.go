@@ -1,6 +1,9 @@
 package utils
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
 
 type ResponseData struct {
 	Code 	int		`json:"code"`
@@ -21,19 +24,19 @@ func (r *ResponseObject) Json(code int,msg string ,obj any){
 	d 	:= &ResponseData{
 		Code: code,Msg: msg,Data: obj,
 	}
-	r.Handle.JSON(code,d)
+	r.Handle.JSON(http.StatusOK,d)
 }
 
 func (r *ResponseObject) Success(obj any){
 	d 	:= &ResponseData{
-		Code: 200,Msg: "success",Data: obj,
+		Code: http.StatusOK,Msg: "success",Data: obj,
 	}
-	r.Handle.JSON(200,d)
+	r.Handle.JSON(http.StatusOK,d)
 }
 
 func (r *ResponseObject) Unauthorized(){
 	d 	:= &ResponseData{
-		Code: 401,Msg: "Unauthorized",
+		Code: http.StatusUnauthorized,Msg: "Unauthorized",
 	}
-	r.Handle.JSON(401,d)
+	r.Handle.JSON(http.StatusOK,d)
 }
