@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -40,7 +39,7 @@ func Dashboard(c *gin.Context){
 	}
 	result := handle.Count(&total).Offset((page - 1) * pageSize).Limit(pageSize).Find(&list)
 	if result.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,result.Error.Error(),nil)
+		utils.CreateResponse(c).ServerError(result.Error.Error())
 	} else {
 		utils.CreateResponse(c).Success(gin.H{"list": list,"count":total})
 	}
@@ -54,28 +53,28 @@ func Info(c *gin.Context) {
 	page,_		:= strconv.Atoi(c.DefaultQuery("page","0"))
 	pageSize,_	:= strconv.Atoi(c.DefaultQuery("pageSize","100"))
 	if start == "" || end == "" {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"Please select a date range",nil)
+		utils.CreateResponse(c).BadRequest("Please select a date range")
 		return
 	}
-	dateStart,err	:= time.Parse(start,"2006-01-02 15:04:05")
+	dateStart,err	:= time.Parse("2006-01-02 15:04:05",start)
 	if err != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"Incorrect time range",nil)
+		utils.CreateResponse(c).BadRequest("Incorrect time range")
 		return
 	}
-	dateEnd,err		:= time.Parse(end,"2006-01-02 15:04:05")
+	dateEnd,err		:= time.Parse("2006-01-02 15:04:05",end)
 	if err != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"Incorrect time range",nil)
+		utils.CreateResponse(c).BadRequest("Incorrect time range")
 		return
 	}
 	if uid <= 0 {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"parameter is incorrect",nil)
+		utils.CreateResponse(c).BadRequest("parameter is incorrect")
 		return
 	}
 	db 		:= utils.GetDB()
 	var account model.Account
-	fc		:= db.First(&account,uid)
+	fc		:= db.Model(&model.Account{}).Where("id = ?" ,uid).First(&account)
 	if errors.Is(fc.Error,gorm.ErrRecordNotFound) {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"Unable to find the account",nil)
+		utils.CreateResponse(c).BadRequest("Unable to find the account")
 		return
 	}
 
@@ -100,16 +99,16 @@ func UpdateToken(c *gin.Context) {
 	uid,uidErr		:= strconv.ParseUint(c.PostForm("uid"),10,64)
 	tokens,tokenErr	:= strconv.ParseUint(c.PostForm("tokens"),10,64)
 	if uid <= 0 || uidErr != nil || tokenErr != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"parameter is incorrect",nil)
+		utils.CreateResponse(c).BadRequest("parameter is incorrect")
 		return
 	}
 	db	:= utils.GetDB()
 	result := db.Model(&model.Account{}).Where("id = ?", uid).Update("token_count", tokens)
 	if result.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,"Modification failed",nil)
+		utils.CreateResponse(c).ServerError("Modification failed")
 		return
 	}
-	utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+	utils.CreateResponse(c).Success(gin.H{})
 	return
 }
 
@@ -126,7 +125,7 @@ func GetTokenGrantLogs(c *gin.Context){
 	db		:= utils.GetDB()
 	result	:= db.Model(&model.TokenGrant{}).Select("date,count(*) as number,sum(token) as total_tokens").Group("date").Count(&total).Order("date desc").Offset((page - 1) * pageSize).Limit(pageSize).Scan(&list)
 	if result.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,result.Error.Error(),nil)
+		utils.CreateResponse(c).ServerError(result.Error.Error())
 		return
 	}
 	utils.CreateResponse(c).Success(gin.H{
@@ -154,7 +153,7 @@ func GetDefaultTokenReward() int {
 func UpdateDefaultTokenReward(c *gin.Context){
 	token,err 	:= strconv.Atoi(c.PostForm("tokens"))
 	if err != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"parameter is incorrect",nil)
+		utils.CreateResponse(c).BadRequest("parameter is incorrect")
 		return
 	}
 	tomorrow,_ 	:= time.Parse("2006-01-02",time.Now().Format("2006-01-02"))
@@ -165,33 +164,33 @@ func UpdateDefaultTokenReward(c *gin.Context){
 	db			:= utils.GetDB()
 	result		:= db.Create(&reward)
 	if result.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,"Update failed",nil)
+		utils.CreateResponse(c).ServerError("Update failed")
 		return
 	}
-	utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+	utils.CreateResponse(c).Success(gin.H{})
 	return
 }
 
 func BatchGrant(c *gin.Context){
 	code 	:= c.DefaultPostForm("code","")
 	if code == "" {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"file not found",nil)
+		utils.CreateResponse(c).BadRequest("file not found")
 		return
 	}
 	fileByte,err := base64.StdEncoding.DecodeString(code)
 	if err != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"file not found",nil)
+		utils.CreateResponse(c).BadRequest("file not found")
 		return
 	}
 	file		:= string(fileByte)
 	rootPath,_	:= os.Getwd()
 	filePath	:= rootPath + file
-	importErr 	:= utils.ImportEmails(filePath,c.ClientIP())
+	importErr 	:= utils.BatchGrant(filePath)
 	_			= os.Remove(filePath)
 	if importErr != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,importErr.Error(),nil)
+		utils.CreateResponse(c).ServerError(importErr.Error())
 		return
 	}
-	utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+	utils.CreateResponse(c).Success(gin.H{})
 	return
 }

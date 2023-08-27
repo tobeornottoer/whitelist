@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/xuri/excelize/v2"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 	"whitelist/model"
 )
 
@@ -56,7 +58,8 @@ func ImportEmails(filePath string,ip string) error {
 	}
 	return nil
 }
-/*
+
+// BatchGrant 批量发放token
 func BatchGrant(filePath string) error {
 	_,err		:= os.Stat(filePath)
 	if err != nil {
@@ -76,20 +79,23 @@ func BatchGrant(filePath string) error {
 		return exlErr
 	}
 	emailRegexp := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	var upById	map[uint64]uint64
+	var upById	map[uint]uint64
 	var upByEmail map[string]uint64
 	var emails	[]string
+	var uids	[]uint
 	for rIndex, row := range rows {
 		token,err := strconv.ParseUint(row[2],10,64)
 		if err != nil {
-			return errors.New(fmt.Sprintf("The value in line %d is incorrect",rIndex + 1))
+			return errors.New(fmt.Sprintf("The token in line %d is incorrect",rIndex + 1))
 		}
 		if row[0] != "" {
 			uid,err := strconv.ParseUint(row[0],10,64)
 			if err != nil {
-				return errors.New(fmt.Sprintf("The value in line %d is incorrect",rIndex + 1))
+				return errors.New(fmt.Sprintf("The UID in line %d is incorrect",rIndex + 1))
 			}
-			upById[uid] = token
+			u 			:= uint(uid)
+			upById[u] 	= token
+			uids		= append(uids,u)
 		} else if row[1] != "" {
 			if !emailRegexp.MatchString(row[1]) {
 				return errors.New(fmt.Sprintf("The email in line %d is incorrect",rIndex + 1))
@@ -99,48 +105,58 @@ func BatchGrant(filePath string) error {
 		}
 	}
 	db 	:= GetDB()
-	type emailMap struct {
-		ID		uint64
+	type acMap struct {
+		ID		uint
 		Email 	string
+		Token	uint64
 	}
-	var maps []emailMap
+	var maps []acMap
+	handle	:= db.Model(&model.Account{})
+	if len(uids) > 0 {
+		handle	= handle.Where("id in ",uids)
+	}
 	if len(emails) > 0 {
-		result := db.Model(&model.Account{}).Where("email in ?",emails).Select("id", "email").Scan(&maps)
-		if result.Error == nil {
-			for _,value := range maps {
-				if t,ok := upByEmail[value.Email];ok {
-					upById[value.ID] = t
-				}
-			}
-		}
+		handle	= handle.Or("email in ",emails)
+	}
+	result	:= handle.Select("id", "email","token_count").Scan(&maps)
+	if result.Error != nil {
+		return errors.New("an error occurred while searching for users")
 	}
 	var grants []model.TokenGrant
-	//var updates []model.Account
-	for uid,ut := range upById {
-		grants	= append(grants,model.TokenGrant{
-			AccountId: uid,
-			Date:time.Now().Format("2006-01-02"),
-			Token:ut,
-			Way:2,
-		})
-		//todo 这里更新有问题，给每个用户增加相对应的token
-		//updates	= append(updates,model.Account{ID:uid,TokenCount: })
+	var updates []model.Account
+	var incr uint64
+	for _,value := range maps {
+		if t,ok := upById[value.ID];ok {
+			incr = t
+		} else if t,ok := upByEmail[value.Email];ok {
+			incr = t
+		}
+		if incr > 0 {
+			updates	= append(updates,model.Account{Model:gorm.Model{ID: value.ID},TokenCount: value.Token + incr})
+			grants	= append(grants,model.TokenGrant{
+				AccountId: value.ID,
+				Date:      time.Now().Format("2006-01-02"),
+				Token:     incr,
+				Way:       2,
+			})
+		}
 	}
-	db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&grants).Error; err != nil {
+	if len(grants) <= 0 {
+		return errors.New("some errors resulted in no data updates")
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err 	:= tx.Create(&grants).Error; err != nil {
 			return err
 		}
-		//result := db.Clauses(clause.OnConflict{
-		//	Columns:   []clause.Column{{Name: "id"}},
-		//	DoUpdates: clause.AssignmentColumns([]string{"token_count"}),
-		//}).Create(&emails)
-		//if err := tx.Create(&Animal{Name: "Lion"}).Error; err != nil {
-		//	return err
-		//}
-
-		// 返回 nil 提交事务
+		err 	:= tx.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"token_count"}),
+		}).Create(&updates)
+		if err.Error != nil {
+			return err.Error
+		}
 		return nil
 	})
 
 }
-*/

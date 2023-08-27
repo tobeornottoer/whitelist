@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -51,9 +50,9 @@ func Get(c *gin.Context) {
 	}
 	result		:= handle.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&whitelist)
 	if result.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,result.Error.Error(),nil)
+		utils.CreateResponse(c).ServerError(result.Error.Error())
 	} else {
-		utils.CreateResponse(c).Json(http.StatusOK,"success",gin.H{"list":whitelist,"count":total})
+		utils.CreateResponse(c).Success(gin.H{"list":whitelist,"count":total})
 	}
 
 }
@@ -62,7 +61,7 @@ func Get(c *gin.Context) {
 func Approve(c *gin.Context) {
 	emailArr,ok := c.GetPostFormArray("email")
 	if !ok {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"param email invalid",nil)
+		utils.CreateResponse(c).BadRequest("param email invalid")
 		return
 	}
 	db			:= utils.GetDB()
@@ -70,16 +69,16 @@ func Approve(c *gin.Context) {
 		Where("email IN ?",emailArr).
 		Updates(model.WaitList{WhiteListFlag: true})
 	if result.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,result.Error.Error(),nil)
+		utils.CreateResponse(c).ServerError(result.Error.Error())
 		return
 	}
-	utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+	utils.CreateResponse(c).Success(gin.H{})
 }
 
 func AddEmail(c *gin.Context) {
 	email 	:= c.DefaultPostForm("email","")
 	if email == "" {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"param email invalid",nil)
+		utils.CreateResponse(c).BadRequest("param email invalid")
 		return
 	}
 	var whitelist model.WaitList
@@ -97,29 +96,29 @@ func AddEmail(c *gin.Context) {
 		}
 		insert 	:= db.Create(newEmail)
 		if insert.Error != nil {
-			utils.CreateResponse(c).Json(http.StatusInternalServerError,"add fail",nil)
+			utils.CreateResponse(c).ServerError("add fail")
 			return
 		}
-		utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+		utils.CreateResponse(c).Success(gin.H{})
 		return
 	}
 	if whitelist.WhiteListFlag == true {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,"The email is already on the whitelist",nil)
+		utils.CreateResponse(c).ServerError("The email is already on the whitelist")
 		return
 	}
 	update 	:= db.Model(&whitelist).Update("white_list_flag",true)
 	if update.Error != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,"add fail",nil)
+		utils.CreateResponse(c).ServerError("add fail")
 		return
 	}
-	utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+	utils.CreateResponse(c).Success(gin.H{})
 	return
 }
 
 func UploadEmailExcel(c *gin.Context) {
 	file,uErr	:= c.FormFile("file")
 	if uErr != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"file not found",nil)
+		utils.CreateResponse(c).BadRequest("file not found")
 		return
 	}
 	today		:= time.Now().Format("20060102")
@@ -130,36 +129,36 @@ func UploadEmailExcel(c *gin.Context) {
 	if err != nil {
 		mkdirErr := os.MkdirAll(rootPath + fileDir,0777)
 		if mkdirErr != nil {
-			utils.CreateResponse(c).Json(http.StatusInternalServerError,"can not create upload dir",nil)
+			utils.CreateResponse(c).ServerError("can not create upload dir")
 			return
 		}
 	}
 	ext 		:= path.Ext(file.Filename)
 	allowExt	:= map[string]bool{".xls":true,".xlsx":true,".csv":true}
 	if _, ok 	:= allowExt[ext]; !ok {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,"Unsupported File Format",nil)
+		utils.CreateResponse(c).ServerError("Unsupported File Format")
 		return
 	}
 	filename 	:= fileDir + time.Now().Format("20060102150405") + "_" + file.Filename
 	uploadErr	:= c.SaveUploadedFile(file,rootPath + filename)
 	if uploadErr != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,"upload fail",nil)
+		utils.CreateResponse(c).ServerError("upload fail")
 		return
 	}
 	code		:= base64.StdEncoding.EncodeToString([]byte(filename))
-	utils.CreateResponse(c).Json(http.StatusOK,"success",gin.H{"file":file.Filename,"code":code})
+	utils.CreateResponse(c).Success(gin.H{"file":file.Filename,"code":code})
 	return
 }
 
 func ImportEmails(c *gin.Context){
 	code 	:= c.DefaultPostForm("code","")
 	if code == "" {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"file not found",nil)
+		utils.CreateResponse(c).BadRequest("file not found")
 		return
 	}
 	fileByte,err := base64.StdEncoding.DecodeString(code)
 	if err != nil {
-		utils.CreateResponse(c).Json(http.StatusBadRequest,"file not found",nil)
+		utils.CreateResponse(c).BadRequest("file not found")
 		return
 	}
 	file		:= string(fileByte)
@@ -168,9 +167,9 @@ func ImportEmails(c *gin.Context){
 	importErr 	:= utils.ImportEmails(filePath,c.ClientIP())
 	_			= os.Remove(filePath)
 	if importErr != nil {
-		utils.CreateResponse(c).Json(http.StatusInternalServerError,importErr.Error(),nil)
+		utils.CreateResponse(c).ServerError(importErr.Error())
 		return
 	}
-	utils.CreateResponse(c).Json(http.StatusOK,"success",nil)
+	utils.CreateResponse(c).Success(gin.H{})
 	return
 }

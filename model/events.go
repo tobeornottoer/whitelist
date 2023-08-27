@@ -10,7 +10,7 @@ type Events struct{
 	Event 				string 			`json:"event"`
 	Status				string 			`json:"status"`
 	Latency				decimal.Decimal	`json:"latency"`
-	PromptTokens		uint32			`json:"prompt_tokens"`
-	CompletionTokens	uint32			`json:"completion_tokens"`
+	PromptTokens		uint			`json:"prompt_tokens"`
+	CompletionTokens	uint			`json:"completion_tokens"`
 	Cost				decimal.Decimal	`json:"cost"`
 }

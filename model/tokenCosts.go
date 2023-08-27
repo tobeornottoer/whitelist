@@ -4,8 +4,8 @@ import "gorm.io/gorm"
 
 type TokenCosts struct {
 	gorm.Model
-	EventID			uint64 		`gorm:"index"`
-	AccountID		uint64 		`gorm:"index"`
+	EventID			uint 		`gorm:"index"`
+	AccountID		uint 		`gorm:"index"`
 	ActionType		int32		`gorm:"index"`
 	Action 			string 		`gorm:"index"`
 	ModelType		int32		`gorm:"index"`

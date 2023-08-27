@@ -70,5 +70,14 @@ func business(r *gin.Engine) {
 		authorized.POST("/update/token/reward",func(c *gin.Context){
 			business2.UpdateDefaultTokenReward(c)
 		})
+		authorized.POST("/import/token/grant",func(c *gin.Context){
+			business2.BatchGrant(c)
+		})
+		authorized.GET("/module/usage",func(c *gin.Context){
+			business2.ModelUsage(c)
+		})
+		authorized.GET("/module/usage/:model_type",func(c *gin.Context){
+			business2.ModelUsageByType(c)
+		})
 	}
 }

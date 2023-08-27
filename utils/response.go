@@ -40,3 +40,17 @@ func (r *ResponseObject) Unauthorized(){
 	}
 	r.Handle.JSON(http.StatusOK,d)
 }
+
+func (r *ResponseObject) ServerError(msg string) {
+	d 	:= &ResponseData{
+		Code: http.StatusInternalServerError,Msg: msg,
+	}
+	r.Handle.JSON(http.StatusOK,d)
+}
+
+func (r *ResponseObject) BadRequest(msg string) {
+	d 	:= &ResponseData{
+		Code: http.StatusBadRequest,Msg: msg,
+	}
+	r.Handle.JSON(http.StatusOK,d)
+}
