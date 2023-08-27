@@ -2,7 +2,7 @@ package model
 
 import "gorm.io/gorm"
 
-type TokenCost struct {
+type TokenCosts struct {
 	gorm.Model
 	EventID			uint64 		`gorm:"index"`
 	AccountID		uint64 		`gorm:"index"`

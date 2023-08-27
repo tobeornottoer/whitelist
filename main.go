@@ -2,11 +2,11 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"whitelist/logger"
 	"whitelist/route"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -18,8 +18,7 @@ func main(){
 	gin.DisableConsoleColor()
 	gin.SetMode(os.Getenv("RUN_MODE"))
 	router := gin.Default()
-	router.Use(cors.Default())
-	router.Use(logger.Logger())
+	router.Use(Cors(),logger.Logger())
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
@@ -31,5 +30,21 @@ func loadEnv(){
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
+	}
+}
+
+func Cors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		host	:= os.Getenv("APP_HOST")
+		c.Header("Access-Control-Allow-Origin", host)
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "content-type")
+		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
+		if c.Request.Method == "OPTIONS" {
+			c.JSON(http.StatusOK, "")
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
 }

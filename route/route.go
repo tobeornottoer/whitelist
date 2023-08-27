@@ -58,5 +58,17 @@ func business(r *gin.Engine) {
 		authorized.GET("/token/dashboard",func(c *gin.Context){
 			business2.Dashboard(c)
 		})
+		authorized.GET("/token/info",func(c *gin.Context){
+			business2.Info(c)
+		})
+		authorized.POST("/update/token",func(c *gin.Context){
+			business2.UpdateToken(c)
+		})
+		authorized.GET("/token/grant",func(c *gin.Context){
+			business2.GetTokenGrantLogs(c)
+		})
+		authorized.POST("/update/token/reward",func(c *gin.Context){
+			business2.UpdateDefaultTokenReward(c)
+		})
 	}
 }
