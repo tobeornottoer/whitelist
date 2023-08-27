@@ -38,7 +38,7 @@ func Cors() gin.HandlerFunc {
 		host	:= os.Getenv("APP_HOST")
 		c.Header("Access-Control-Allow-Origin", host)
 		c.Header("Access-Control-Allow-Credentials", "true")
-		c.Header("Access-Control-Allow-Headers", "content-type")
+		c.Header("Access-Control-Allow-Headers", "*")
 		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
 		if c.Request.Method == "OPTIONS" {
 			c.JSON(http.StatusOK, "")
