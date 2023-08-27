@@ -35,9 +35,7 @@ func loadEnv(){
 
 func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		host	:= os.Getenv("APP_HOST")
-		c.Header("Access-Control-Allow-Origin", host)
-		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Headers", "*")
 		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE")
 		if c.Request.Method == "OPTIONS" {
